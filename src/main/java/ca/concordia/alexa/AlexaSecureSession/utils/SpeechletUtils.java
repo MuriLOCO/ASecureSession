@@ -42,14 +42,28 @@ public class SpeechletUtils {
 
   public static SpeechletResponse getChallenge(final Intent intent, final Session session) {       
     int challenge = getRandomNumber();
-    speechText = "Hello, the challenge is " + challenge;
-    repromptText = "Hello, the challenge is " + challenge;
+    speechText = "Hello, the challenge is " + challenge + "please tell me the answer of the challenge.";
+    repromptText = "Hello, the challenge is " + challenge + "please tell me the answer of the challenge.";
     
     return getSpeechletResponse(speechText, repromptText, true);
   }
   
   private static int getRandomNumber() {
     return rand.nextInt(99);
+  }
+  
+  public static SpeechletResponse getHelpIntentResponse(Intent intent,Session session) {
+    speechText = "Do you want me to send another challenge?";
+    repromptText = "Do you want me to send another challenge?";
+
+    return getSpeechletResponse(speechText, repromptText, true);
+  }
+  
+  public static SpeechletResponse getExitIntentResponse(Intent intent, Session session) {
+    
+    speechText = String.format("Goodbye");
+
+    return getSpeechletResponse(speechText, speechText, false);
   }
 
 }

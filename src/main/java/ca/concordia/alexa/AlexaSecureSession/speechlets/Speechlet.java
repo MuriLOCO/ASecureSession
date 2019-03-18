@@ -18,20 +18,20 @@ import ca.concordia.alexa.AlexaSecureSession.utils.SpeechletUtils;
 public class Speechlet implements SpeechletV2 {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Speechlet.class);
-  
+
   private static String speechText;
-  private static String repromptText;  
-  
-  
+  private static String repromptText;
+  private static String errorSpeech;
+
   public void onSessionStarted(SpeechletRequestEnvelope<SessionStartedRequest> requestEnvelope) {
     LOGGER.info("onSessionStarted requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
           requestEnvelope.getSession().getSessionId());
   }
 
-  public SpeechletResponse onLaunch(SpeechletRequestEnvelope<LaunchRequest> requestEnvelope) {    
+  public SpeechletResponse onLaunch(SpeechletRequestEnvelope<LaunchRequest> requestEnvelope) {
     LOGGER.info("onLaunch requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
           requestEnvelope.getSession().getSessionId());
-    
+
     speechText = "Hello, to start your secure session please say Yes.";
     repromptText = "Hello, to start your secure session please say Yes.";
     return SpeechletUtils.getSpeechletResponse(speechText, repromptText, true);
@@ -42,21 +42,27 @@ public class Speechlet implements SpeechletV2 {
     Session session = requestEnvelope.getSession();
 
     LOGGER.info("onIntent requestId={}, sessionId={}", request.getRequestId(), session);
-    
-    // Get intent from the request object.
+
     Intent intent = request.getIntent();
     String intentName = (intent != null) ? intent.getName() : null;
 
     if ("SecureSessionStartIntent".equals(intentName))
       return SpeechletUtils.getChallenge(intent, session);
-    else {
-      String errorSpeech = "Sorry, Please try something else.";
+    else if ("AMAZON.HelpIntent".equals(intent.getName())) {
+      return SpeechletUtils.getHelpIntentResponse(intent, session);
+    } else if ("AMAZON.CancelIntent".equals(intent.getName())) {
+      return SpeechletUtils.getExitIntentResponse(intent, session);
+    } else if ("AMAZON.StopIntent".equals(intent.getName())) {
+      return SpeechletUtils.getExitIntentResponse(intent, session);
+    } else {
+      errorSpeech = "Sorry, Please try something else.";
       return SpeechletUtils.getSpeechletResponse(errorSpeech, errorSpeech, true);
     }
   }
 
   public void onSessionEnded(SpeechletRequestEnvelope<SessionEndedRequest> requestEnvelope) {
-    // TODO Auto-generated method stub
+    LOGGER.info("onSessionEnded requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
+          requestEnvelope.getSession().getSessionId());
   }
 
 }
