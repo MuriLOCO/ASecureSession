@@ -13,6 +13,7 @@ import com.amazon.speech.speechlet.SessionStartedRequest;
 import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.speechlet.SpeechletV2;
 
+import ca.concordia.alexa.AlexaSecureSession.utils.SecureSessionKeyUtils;
 import ca.concordia.alexa.AlexaSecureSession.utils.SpeechletUtils;
 
 public class Speechlet implements SpeechletV2 {
@@ -34,7 +35,7 @@ public class Speechlet implements SpeechletV2 {
 
     speechText = "Hello, to start your secure session please say Yes.";
     repromptText = "Hello, to start your secure session please say Yes.";
-    return SpeechletUtils.getSpeechletResponse(speechText, repromptText, true);
+    return SpeechletUtils.getSimpleSpeechletResponse(speechText, repromptText);
   }
 
   public SpeechletResponse onIntent(SpeechletRequestEnvelope<IntentRequest> requestEnvelope) {
@@ -45,19 +46,26 @@ public class Speechlet implements SpeechletV2 {
 
     Intent intent = request.getIntent();
     String intentName = (intent != null) ? intent.getName() : null;
-
-    if ("SecureSessionStartIntent".equals(intentName))
-      return SpeechletUtils.getChallenge(intent, session);
-    else if ("AMAZON.HelpIntent".equals(intent.getName())) {
-      return SpeechletUtils.getHelpIntentResponse(intent, session);
-    } else if ("AMAZON.CancelIntent".equals(intent.getName())) {
-      return SpeechletUtils.getExitIntentResponse(intent, session);
-    } else if ("AMAZON.StopIntent".equals(intent.getName())) {
-      return SpeechletUtils.getExitIntentResponse(intent, session);
-    } else {
-      errorSpeech = "Sorry, Please try something else.";
-      return SpeechletUtils.getSpeechletResponse(errorSpeech, errorSpeech, true);
+    try {
+      if ("SecureSessionStartIntent".equals(intentName)) {
+        int challenge = SecureSessionKeyUtils.getRandomNumber();
+        return SpeechletUtils.getChallenge(intent, session, challenge);
+      } else if ("AMAZON.HelpIntent".equals(intent.getName())) {
+        return SpeechletUtils.getHelpIntentResponse(intent, session);
+      } else if ("AMAZON.CancelIntent".equals(intent.getName())) {
+        return SpeechletUtils.getExitIntentResponse(intent, session);
+      } else if ("AMAZON.StopIntent".equals(intent.getName())) {
+        return SpeechletUtils.getExitIntentResponse(intent, session);
+      } else {
+        errorSpeech = "Sorry, Please try something else.";
+        return SpeechletUtils.getSimpleSpeechletResponse(errorSpeech, errorSpeech);
+      }
+    } catch (Exception e) {
+      LOGGER.error(e.getMessage());
+      e.printStackTrace();
     }
+    errorSpeech = "Sorry, an error has occured.";
+    return SpeechletUtils.getSimpleSpeechletResponse(errorSpeech, errorSpeech);
   }
 
   public void onSessionEnded(SpeechletRequestEnvelope<SessionEndedRequest> requestEnvelope) {
