@@ -1,5 +1,6 @@
 package ca.concordia.alexa.AlexaSecureSession.utils;
 
+import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -11,8 +12,17 @@ import java.util.Random;
 
 import javax.crypto.Cipher;
 
+import org.apache.http.client.ClientProtocolException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import ca.concordia.alexa.AlexaSecureSession.processor.SecureSessionKeyProcessor;
+import ca.concordia.alexa.AlexaSecureSession.speechlets.models.SecureSessionKey;
+
 public class SecureSessionKeyUtils {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SecureSessionKeyUtils.class);
+  
   private static Random rand = new Random();
 
   public static PrivateKey loadPrivateKey(byte[] privateKey) throws InvalidKeySpecException, NoSuchAlgorithmException {
@@ -28,6 +38,7 @@ public class SecureSessionKeyUtils {
   }
 
   public static byte[] decrypt(PrivateKey privateKey, byte[] cipherText) throws Exception {
+    
     Cipher cipher = Cipher.getInstance("RSA");
     cipher.init(Cipher.DECRYPT_MODE, privateKey);
     return cipher.doFinal(cipherText);
@@ -40,7 +51,7 @@ public class SecureSessionKeyUtils {
    * @return
    * @throws Exception
    */
-  public static byte[] encrypt(PublicKey publicKey, byte[] text) throws Exception {
+  public static byte[] encrypt(PublicKey publicKey, byte[] text) throws Exception {  
     Cipher cipher = Cipher.getInstance("RSA");
     cipher.init(Cipher.ENCRYPT_MODE, publicKey);
     return cipher.doFinal(text);
@@ -48,6 +59,13 @@ public class SecureSessionKeyUtils {
 
   public static int getRandomNumber() {
     return rand.nextInt(99);
+  }
+  
+  public static SecureSessionKey getSessionKey() throws ClientProtocolException, IOException, InvalidKeySpecException, NoSuchAlgorithmException {
+    LOGGER.info("*****GETTING KEY");
+    String response = HttpUtils.makeRestCallAndGetResponse(AlexaUtils.URL_SECURE_SESSION);
+    SecureSessionKey secureSessionKey = SecureSessionKeyProcessor.convertSecureSessionKeyFromJSON(response);
+    return secureSessionKey;
   }
 
   
