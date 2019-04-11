@@ -38,7 +38,8 @@ public class SecureSessionKeyUtils {
   }
 
   public static byte[] decrypt(PrivateKey privateKey, byte[] cipherText) throws Exception {
-    
+    LOGGER.info("**** CIPHER TEXT IS: " + new String(cipherText));
+    LOGGER.info("*** DATA SIZE IS: " + cipherText.length);
     Cipher cipher = Cipher.getInstance("RSA");
     cipher.init(Cipher.DECRYPT_MODE, privateKey);
     return cipher.doFinal(cipherText);

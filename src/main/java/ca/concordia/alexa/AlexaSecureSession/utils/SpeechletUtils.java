@@ -1,5 +1,7 @@
 package ca.concordia.alexa.AlexaSecureSession.utils;
 
+import java.util.Base64;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,12 +41,25 @@ public class SpeechletUtils {
     PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
     speech.setText(speechText);   
     
-    byte[] text = null;   
-    boolean needToAsk = false;
-    LOGGER.info("*********THE VALUE IS: " + intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue());
-    if(intent.getSlot(AlexaUtils.CIPHER_TEXT) != null && intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue() != null && !intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue().isEmpty())
-         text = AlexaUtils.loadAndDecryptChallenge(secureSessionKey, intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue().getBytes());      
-    
+    byte[] text = null;
+    boolean needToAsk = false;        
+    if(intent.getSlot(AlexaUtils.CIPHER_TEXT) != null && intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue() != null && !intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue().isEmpty()) {
+      
+      byte[] decodedText;
+      String slot = intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue();
+      LOGGER.info("*********THE VALUE IS: " + slot);
+      String fixedBase64String = slot + "=="; //Adds back "==" because Alexa ignores it
+      LOGGER.info("*** STRING TO BE DECODED: " + fixedBase64String);
+      try{
+        decodedText = Base64.getDecoder().decode(fixedBase64String);  
+      }catch (Exception e) {
+        fixedBase64String = slot + "="; //Adds "=" in case has an error
+        LOGGER.info("*** STRING TO BE DECODED: " + fixedBase64String);
+        decodedText = Base64.getDecoder().decode(fixedBase64String);        
+      }
+      LOGGER.info("********* THE DECODED TEXT IS: " + new String(decodedText));
+      text = AlexaUtils.loadAndDecryptChallenge(secureSessionKey, decodedText);      
+    }
     needToAsk = AlexaUtils.needToAskChallengeResponse(text, challenge);
     LOGGER.info("********** NEED RESPONSE? " + needToAsk);
     //Gets if the challenge is null  
@@ -81,6 +96,5 @@ public class SpeechletUtils {
     String speechText = "Goodbye";
 
     return getSimpleSpeechletResponse(speechText, speechText);
-  }   
-
+  }  
 }

@@ -6,7 +6,7 @@ public class AlexaUtils {
 
   public final static String ALEXA_API_KEY = "amzn1.ask.skill.6b183ddc-d527-4e83-a8d5-656083506666";
 
-  public final static String URL_SECURE_SESSION = "http://asecuresession.ddns.net:8080/generate?keySize=512";
+  public final static String URL_SECURE_SESSION = "http://asecuresession.ddns.net:8080/generate?keySize=1024";
 
   public final static String CIPHER_TEXT = "cipher_text";
 
