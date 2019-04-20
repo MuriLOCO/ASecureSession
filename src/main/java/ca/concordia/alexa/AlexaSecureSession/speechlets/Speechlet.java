@@ -13,7 +13,7 @@ import com.amazon.speech.speechlet.SessionStartedRequest;
 import com.amazon.speech.speechlet.SpeechletResponse;
 import com.amazon.speech.speechlet.SpeechletV2;
 
-import ca.concordia.alexa.AlexaSecureSession.utils.SecureSessionKeyUtils;
+import ca.concordia.alexa.AlexaSecureSession.utils.CipherUtils;
 import ca.concordia.alexa.AlexaSecureSession.utils.SpeechletUtils;
 
 public class Speechlet implements SpeechletV2 {
@@ -23,6 +23,8 @@ public class Speechlet implements SpeechletV2 {
   private static String speechText;
   private static String repromptText;
   private static String errorSpeech;
+  private static Integer randomNumber;
+  private static final int KEY_ID = CipherUtils.getRandomKey();
 
   public void onSessionStarted(SpeechletRequestEnvelope<SessionStartedRequest> requestEnvelope) {
     LOGGER.info("onSessionStarted requestId={}, sessionId={}", requestEnvelope.getRequest().getRequestId(),
@@ -46,10 +48,12 @@ public class Speechlet implements SpeechletV2 {
 
     Intent intent = request.getIntent();
     String intentName = (intent != null) ? intent.getName() : null;
+    
     try {
       if ("SecureSessionStartIntent".equals(intentName)) {
-        int challenge = SecureSessionKeyUtils.getRandomNumber();
-        return SpeechletUtils.getChallenge(intent, session, challenge);
+        randomNumber = randomNumber != null ? randomNumber : CipherUtils.getRandomNumber();
+        String challenge = String.valueOf(randomNumber);
+        return SpeechletUtils.getChallenge(intent, session, challenge, KEY_ID);
       } else if ("AMAZON.HelpIntent".equals(intent.getName())) {
         return SpeechletUtils.getHelpIntentResponse(intent, session);
       } else if ("AMAZON.CancelIntent".equals(intent.getName())) {

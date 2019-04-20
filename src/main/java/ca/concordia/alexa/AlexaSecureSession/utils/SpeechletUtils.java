@@ -1,6 +1,7 @@
 package ca.concordia.alexa.AlexaSecureSession.utils;
 
-import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,15 +13,20 @@ import com.amazon.speech.ui.PlainTextOutputSpeech;
 import com.amazon.speech.ui.Reprompt;
 import com.amazon.speech.ui.SimpleCard;
 
-import ca.concordia.alexa.AlexaSecureSession.speechlets.models.SecureSessionKey;
-
 public class SpeechletUtils {  
   
-  private static final Logger LOGGER = LoggerFactory.getLogger(SpeechletUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SpeechletUtils.class); 
+  private static final Map<Integer, String> ID_KEY_MAP = new HashMap<>();
   
-  private static SecureSessionKey secureSessionKey; 
+  private static void populateIdKeyMap(){
+    ID_KEY_MAP.put(1, "9264730815");
+    ID_KEY_MAP.put(2, "5180374629");
+    ID_KEY_MAP.put(3, "6308159264");
+    ID_KEY_MAP.put(4, "6429057381");
+    ID_KEY_MAP.put(5, "1234506789");
+  }
   
-  public static SpeechletResponse getSimpleSpeechletResponse(String speechText, String repromptText) {
+  public static SpeechletResponse getSimpleSpeechletResponse(String speechText, String repromptText) {    
     SimpleCard card = new SimpleCard();
 
     card.setTitle("SecureSession");
@@ -31,8 +37,8 @@ public class SpeechletUtils {
     return SpeechletResponse.newTellResponse(speech, card);
   }
   
-  public static SpeechletResponse getSpeechletResponse(Intent intent, String speechText, String repromptText, int challenge) throws Exception {
-    secureSessionKey = secureSessionKey == null ? SecureSessionKeyUtils.getSessionKey() : secureSessionKey;
+  public static SpeechletResponse getSpeechletResponse(Intent intent, String speechText, String repromptText, String challenge, int keyId) throws Exception {    
+    populateIdKeyMap();
     SimpleCard card = new SimpleCard();
 
     card.setTitle("SecureSession");
@@ -41,30 +47,17 @@ public class SpeechletUtils {
     PlainTextOutputSpeech speech = new PlainTextOutputSpeech();
     speech.setText(speechText);   
     
-    byte[] text = null;
+    String plainText = null;
     boolean needToAsk = false;        
     if(intent.getSlot(AlexaUtils.CIPHER_TEXT) != null && intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue() != null && !intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue().isEmpty()) {
-      
-      byte[] decodedText;
-      String slot = intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue();
-      LOGGER.info("*********THE VALUE IS: " + slot);
-      String fixedBase64String = slot + "=="; //Adds back "==" because Alexa ignores it
-      LOGGER.info("*** STRING TO BE DECODED: " + fixedBase64String);
-      try{
-        decodedText = Base64.getDecoder().decode(fixedBase64String);  
-      }catch (Exception e) {
-        fixedBase64String = slot + "="; //Adds "=" in case has an error
-        LOGGER.info("*** STRING TO BE DECODED: " + fixedBase64String);
-        decodedText = Base64.getDecoder().decode(fixedBase64String);        
-      }
-      LOGGER.info("********* THE DECODED TEXT IS: " + new String(decodedText));
-      text = AlexaUtils.loadAndDecryptChallenge(secureSessionKey, decodedText);      
+      String cipherText = intent.getSlot(AlexaUtils.CIPHER_TEXT).getValue();             
+  
+      plainText = CipherUtils.decrypt(cipherText, ID_KEY_MAP.get(keyId));
     }
-    needToAsk = AlexaUtils.needToAskChallengeResponse(text, challenge);
-    LOGGER.info("********** NEED RESPONSE? " + needToAsk);
+    LOGGER.info("PLAIN TEXT IS: " + plainText + ", CHALLENGE IS: " + challenge);
+    needToAsk = AlexaUtils.needToAskChallengeResponse(plainText, challenge);   
     //Gets if the challenge is null  
-    if (needToAsk) {
-      LOGGER.info("*********WAITING FOR ANSWER");
+    if (needToAsk) {      
       PlainTextOutputSpeech repromptSpeech = new PlainTextOutputSpeech();
       repromptSpeech.setText(repromptText);
 
@@ -73,16 +66,19 @@ public class SpeechletUtils {
 
       return SpeechletResponse.newAskResponse(speech, reprompt, card);
 
-    } else {
-      return SpeechletResponse.newTellResponse(speech, card);
+    } else {      
+      String correctChallengeAnswer = "You are authenticated!";
+      PlainTextOutputSpeech correctChallengeSpeech = new PlainTextOutputSpeech();
+      correctChallengeSpeech.setText(correctChallengeAnswer);   
+      return SpeechletResponse.newTellResponse(correctChallengeSpeech, card);
     }
   }
 
-  public static SpeechletResponse getChallenge(Intent intent, Session session, int challenge) throws Exception {       
-    String speechText = "Hello, the challenge is " + challenge + " please tell me the answer of the challenge.";
-    String repromptText = "Sorry, I did not understand. Your challenge is " + challenge + ", please tell me the answer of the challenge";
+  public static SpeechletResponse getChallenge(Intent intent, Session session, String challenge, int keyId) throws Exception {       
+    String speechText = "Hello, the challenge is " + challenge + " and the Key ID is " + keyId + ", please tell me the answer of the challenge.";
+    String repromptText = "Sorry, I did not understand."; 
     
-    return getSpeechletResponse(intent, speechText, repromptText, challenge);
+    return getSpeechletResponse(intent, speechText, repromptText, challenge, keyId);
   } 
  
   
